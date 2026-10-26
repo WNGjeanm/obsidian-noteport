@@ -1,0 +1,15 @@
+.noteport-dialog {padding:8px 4px;}
+.noteport-dialog h2 {margin:10px 0 8px;font-size:1.55em;letter-spacing:-.03em;}
+.noteport-eyebrow {font-size:10px;letter-spacing:.16em;font-weight:700;color:var(--interactive-accent);}
+.noteport-subtitle {color:var(--text-muted);font-size:13px;line-height:1.6;margin:0 0 22px;}
+.noteport-file {display:flex;gap:14px;align-items:center;background:var(--background-secondary);border:1px solid var(--background-modifier-border);border-radius:12px;padding:16px;margin-bottom:16px;}
+.noteport-file-icon {padding:10px 8px;border-radius:8px;background:var(--background-primary);color:var(--interactive-accent);font-weight:700;font-size:12px;}
+.noteport-file strong {font-size:14px;overflow-wrap:anywhere;}
+.noteport-file-meta {color:var(--text-muted);font-size:12px;margin-top:5px;}
+.noteport-dialog .setting-item {align-items:center;padding:16px 0;}
+.noteport-dialog .setting-item-description {font-size:12px;line-height:1.6;}
+.noteport-footnote {font-size:12px;color:var(--text-muted);line-height:1.65;}
+.noteport-actions {display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;margin-top:24px;}
+.noteport-path {display:block;white-space:normal;overflow-wrap:anywhere;padding:12px;border-radius:8px;background:var(--background-secondary);}
+.noteport-warnings {max-height:220px;overflow:auto;font-size:12px;line-height:1.7;overflow-wrap:anywhere;}
+@media(max-width:520px){.noteport-dialog .setting-item{align-items:flex-start;gap:12px}.noteport-actions button{flex:1}}

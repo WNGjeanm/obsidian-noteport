@@ -1,0 +1,10 @@
+{
+  "id": "noteport",
+  "name": "笔呈 · NotePort",
+  "version": "0.1.0",
+  "minAppVersion": "1.8.7",
+  "description": "Export your current note to Word with native heading styles, multilevel numbering, and paragraph formatting.",
+  "author": "WNGjeanm",
+  "authorUrl": "https://github.com/WNGjeanm",
+  "isDesktopOnly": true
+}

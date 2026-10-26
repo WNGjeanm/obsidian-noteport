@@ -1,0 +1,18 @@
+import {readFile,writeFile,mkdir,copyFile} from 'node:fs/promises';
+import {createHash} from 'node:crypto';
+import JSZip from 'jszip';
+const manifest=JSON.parse(await readFile('manifest.json','utf8'));
+const pkg=JSON.parse(await readFile('package.json','utf8'));
+if(pkg.version!==manifest.version)throw new Error('Version mismatch');
+await mkdir('dist',{recursive:true});
+const files=['main.js','manifest.json','styles.css'];
+const zip=new JSZip();
+for(const name of [...files,'LICENSE','THIRD_PARTY_NOTICES.md'])zip.file('noteport/'+name,await readFile(name));
+const archive=`noteport-${manifest.version}.zip`;
+await writeFile('dist/'+archive,await zip.generateAsync({type:'nodebuffer',compression:'DEFLATE'}));
+for(const name of [...files,'LICENSE','THIRD_PARTY_NOTICES.md'])await copyFile(name,'dist/'+name);
+const assets=[archive,...files,'LICENSE','THIRD_PARTY_NOTICES.md'];
+const hashes=[];
+for(const name of assets)hashes.push(createHash('sha256').update(await readFile('dist/'+name)).digest('hex')+'  '+name);
+await writeFile('dist/SHA256SUMS.txt',hashes.join('\n')+'\n');
+console.log('Packaged',archive);
