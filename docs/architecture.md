@@ -13,7 +13,11 @@ flowchart TD
     A[Current Markdown note / 当前笔记] --> B[Editor snapshot / 捕获编辑器文字]
     B --> C[marked tokens / Markdown 解析]
     C --> D[DOCX elements / 文档元素映射]
-    E[Vault image resolver / 库内图片解析] --> D
+    E[Vault image resolver / 库内图片解析] --> M[SVG and WebP to PNG / 图片转换]
+    M --> D
+    C --> R[Isolated Mermaid renderer / 独立图表渲染]
+    R --> P[PNG image / 图表图片]
+    P --> D
     F[Heading numbering and body settings / 编号与缩进设置] --> D
     D --> G[Word styles and numbering / 样式与多级列表]
     G --> H[DOCX package / 文档打包]
@@ -30,6 +34,8 @@ flowchart TD
 | --- | --- |
 | `src/main.ts` | Obsidian lifecycle, command/ribbon/menu, editor capture, modal UI, image resolver, native save dialog and completion UI / 插件入口、编辑器快照、交互、图片解析和保存 |
 | `src/exporter.ts` | Markdown → Word elements, styles, numbering, DOCX packaging, structured warnings / 解析、元素映射、样式编号、打包和提示 |
+| `src/media-renderer.ts` | Lazy hidden Electron renderer, bundled Mermaid, SVG/WebP rasterization, timeout and cleanup / 独立渲染、超时和资源释放 |
+| `src/vault-images.ts` | Source-relative attachment resolution and format conversion routing / 附件路径解析和图片转换分流 |
 | `src/settings.ts` | Defaults and defensive settings loading / 默认配置和配置校验 |
 | `src/i18n.ts` | Language resolution and complete Chinese/English UI dictionaries / 语言选择和双语资源 |
 | `styles.css` | Scoped Obsidian UI styles / 仅作用于插件界面的样式 |
@@ -46,6 +52,18 @@ flowchart TD
 5. Resolve local images through Obsidian's metadata cache using the source note path. Read supported image bytes and cap the dimensions to the A4 content area. / 依据来源笔记路径解析本地图片并等比限制尺寸。
 6. Build styles and list definitions, package the DOCX, complete two missing OOXML features, then prompt for a destination. / 生成样式、列表并打包，补全必要 XML 属性后选择保存位置。
 7. Write the document and show export notes. A cancelled save produces no output file and does not remember new options. / 保存后显示结果；取消保存不写文件、不记住本次选项。
+
+## Media rendering / 图片与图表
+
+Mermaid is bundled as a script string and runs in a separate hidden, sandboxed Electron renderer. The export does not initialize or mutate Obsidian's shared Mermaid instance. The renderer disables Node integration and new windows; CSP blocks network connections, remote images/fonts, and frames. Source is passed as serialized data, with strict Mermaid security.
+
+Mermaid 随插件打包，在独立、隐藏、沙箱化的 Electron 渲染环境中运行，不修改 Obsidian 共用的 Mermaid 配置。渲染环境禁用 Node 集成和新窗口，CSP 禁止网络、远程图片字体和框架。源码以序列化数据传入，并使用 Mermaid 严格模式。
+
+PNG output is captured at twice its logical Word size, preserving HTML labels and Chinese text. SVG/WebP files use the same renderer to become PNG. The window is created only when needed, reused within an export, and destroyed before opening the save dialog or on failure. A failed diagram retains its code and warning; other content continues. Each conversion has a 20-second timeout.
+
+PNG 按 Word 逻辑尺寸的两倍生成，保留 HTML 标签排版与中文。SVG/WebP 使用相同环境转换。仅在需要时创建隐藏窗口，同次导出复用，保存前或失败时释放。单图转换超时为 20 秒；失败保留源码并提示，其余内容继续导出。
+
+See [media details](media-export.md).
 
 ## Heading semantics / 标题语义
 

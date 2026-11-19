@@ -29,6 +29,7 @@
 - **原生标题样式**：Markdown 一级至六级标题，对应 Word“标题 1～标题 6”，可在导航窗格中浏览。
 - **原生多级编号**：可选择 `1、1.1、1.1.1` 编号，与标题样式关联，编号不写死在标题文字里。
 - **统一正文排版**：正文可选不缩进或首行缩进两字符，方便在 Word 中通过样式统一调整。
+- **图片与图表**：本地图片直接嵌入，SVG/WebP 自动转为 PNG，Mermaid 图表也以图片形式进入 Word。
 - **本地生成文档**：无需账号、云端转换、另装 Pandoc，也不要求安装 Word 才能导出文件。
 - **完整中英双语**：命令、设置、导出界面和反馈提示支持简体中文及英文。
 
@@ -44,7 +45,7 @@
 
 保存完成后，可以直接打开文件或打开所在文件夹。默认使用笔记文件名，不额外添加一个文档大标题。属性区不导出。打开导出界面时会捕获当前编辑器的最新文字，导出器不会改写原始笔记。
 
-## 首版支持范围
+## 支持范围
 
 | 笔记内容 | Word 中的结果 |
 | --- | --- |
@@ -54,6 +55,9 @@
 | 有序、无序及嵌套列表 | Word 列表，保留有序列表起始值，最多九级 |
 | Markdown 表格 | 可编辑表格，首行为重复标题行 |
 | 本地 PNG/JPEG/GIF/BMP | 嵌入文档，按比例缩小到页面范围内 |
+| 本地 SVG/WebP | 本地转为 PNG 后嵌入 |
+| Mermaid 代码块 | 渲染为 PNG，按原位置插入 |
+| 图片尺寸 | 支持 `![[图片.png\|300]]`、`![[图片.png\|300x200]]`、`![说明\|300](图片.png)`，保持比例 |
 | `![[图片.png]]`、Markdown 图片 | 根据当前笔记位置解析库内图片 |
 | 网页及邮件链接 | 保留可点击链接 |
 | `[[笔记\|显示名]]` | 保留显示文字 |
@@ -62,17 +66,17 @@
 
 ### 暂未支持及降级规则
 
-首版仅面向**桌面端、当前单篇笔记**。暂不支持多篇合并、自定义模板导入、读取本机 `Normal.dotm`，也不复刻 Obsidian 主题。插件在 Word 标准样式标识下提供固定、统一的排版。
+笔呈面向**桌面端、当前单篇笔记**。暂不支持多篇合并、自定义模板导入、读取本机 `Normal.dotm`，也不复刻 Obsidian 主题。插件在 Word 标准样式标识下提供固定、统一的排版。
 
-Mermaid、公式、嵌入笔记、脚注、提示块、HTML 和插件动态视图暂不完整渲染。检测到这些内容时保留源码或可见文字并给出导出提示；提示块转为普通引用。网络图片、SVG、WebP、缺失图片转为文字占位并提示。相对笔记链接保留文字。图片尺寸别名、自定义 HTML 布局、超宽表格不保证还原。超过九级的列表会压到第九级。公式识别采用启发式规则。
+公式、嵌入笔记、脚注、提示块、HTML 和插件动态视图暂不完整渲染。检测到这些内容时保留源码或可见文字并给出导出提示；提示块转为普通引用。网络图片、缺失图片转为文字占位并提示。相对笔记链接保留文字。自定义 HTML 布局、超宽表格不保证还原。超过九级的列表会压到第九级。公式识别采用启发式规则。
 
-纯图片段落沿用所在段落样式。GIF 以原格式嵌入，不承诺动画效果。原标题中手写的编号会保留；开启自动编号后可能重复，常见数字前缀会触发提示。建议自动编号时不要跳过标题层级。
+纯图片段落使用独立的不缩进图片样式，列表和表格内图片按可用宽度等比缩放。GIF 以原格式嵌入，不承诺动画效果。原标题中手写的编号会保留；开启自动编号后可能重复，常见数字前缀会触发提示。建议自动编号时不要跳过标题层级。
 
 ## 安装与升级
 
 目前通过 **GitHub Releases** 发布，尚未上架 Obsidian 社区插件市场。
 
-1. 从[最新版本](https://github.com/WNGjeanm/obsidian-noteport/releases/latest)下载 `noteport-0.1.0.zip`。
+1. 从[最新版本](https://github.com/WNGjeanm/obsidian-noteport/releases/latest)下载 `noteport-0.2.0.zip`。
 2. 将其中的 `noteport` 文件夹解压到 `<你的笔记库>/.obsidian/plugins/`。
 3. 确认 `.obsidian/plugins/noteport/` 下直接包含 `main.js`、`manifest.json`、`styles.css`。
 4. 重载 Obsidian，在“设置 → 第三方插件”中启用“笔呈 · NotePort”。若有信任提示，请自行审阅并决定。
@@ -97,17 +101,20 @@ Mermaid、公式、嵌入笔记、脚注、提示块、HTML 和插件动态视�
 
 ## 示例与验证
 
+图片语法、转换失败处理和尺寸限制见[图片与 Mermaid 导出说明](docs/media-export.md)。图表在本地转换，排版独立于 Obsidian 主题。
+
 [示例笔记](examples/示例笔记.md)是一份虚构的社区阅读空间改进计划，包含中英文、三级标题、表格、嵌套列表、链接、引用、代码及本地图片。你可以先下载 Word 示例检查质量：
 
 - [不带自动编号的示例](examples/sample.docx)
 - [带自动编号的示例](examples/sample-numbered.docx)
+- [图文与 Mermaid 示例笔记](examples/图文与Mermaid示例.md)及[对应 Word](examples/sample-media.docx)
 - [测试记录与兼容性范围](docs/testing.md)
 
 主页已预留截图位置，由维护者后续补充真实截图。文件名和替换方法见[截图说明](docs/screenshots.md)，示例不包含私人笔记。
 
 ## 工作原理与开发
 
-当前笔记经 Markdown 解析，转换为标题、正文、列表等文档元素，再映射 Word 样式和编号、嵌入本地图片，最终通过原生保存对话框写出 DOCX。转换过程不启动 Word。
+当前笔记经 Markdown 解析，转换为标题、正文、列表等文档元素，再映射 Word 样式和编号、嵌入本地图片与渲染后的 Mermaid 图表，最终通过原生保存对话框写出 DOCX。转换过程不启动 Word。
 
 详细模块划分、编号处理及数据边界见[架构文档](docs/architecture.md)，本地构建与测试见[开发说明](docs/development.md)。
 
@@ -132,6 +139,6 @@ Word 原生样式可以支持导航、编号和统一修改，Obsidian 的主题
 
 请通过 [Issues](https://github.com/WNGjeanm/obsidian-noteport/issues/new/choose) 提供插件、Obsidian、Word 的版本、预期结果及最小示例。分享示例前请自行移除保密内容。
 
-基于 [Obsidian API](https://github.com/obsidianmd/obsidian-api)、[marked](https://github.com/markedjs/marked)、[docx](https://github.com/dolanmiu/docx)、[JSZip](https://github.com/Stuk/jszip) 和 [image-size](https://github.com/image-size/image-size) 构建，详见[第三方说明](THIRD_PARTY_NOTICES.md)。文档组织参考 [DOCX Exporter](https://github.com/kanshurichard/obsidian-docx-exporter) 与 [Obsidian Pandoc](https://github.com/OliverBalfour/obsidian-pandoc)，本项目的代码、文案及示例均为本项目制作。
+基于 [Obsidian API](https://github.com/obsidianmd/obsidian-api)、[marked](https://github.com/markedjs/marked)、[docx](https://github.com/dolanmiu/docx)、[JSZip](https://github.com/Stuk/jszip)、[image-size](https://github.com/image-size/image-size) 和 [Mermaid](https://github.com/mermaid-js/mermaid) 构建，详见[第三方说明](THIRD_PARTY_NOTICES.md)。文档组织参考 [DOCX Exporter](https://github.com/kanshurichard/obsidian-docx-exporter) 与 [Obsidian Pandoc](https://github.com/OliverBalfour/obsidian-pandoc)，本项目的代码、文案及示例均为本项目制作。
 
 采用 [MIT 许可证](LICENSE)，与 Obsidian、Microsoft 无隶属关系。

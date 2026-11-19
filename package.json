@@ -1,6 +1,6 @@
 {
   "name": "obsidian-noteport",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "description": "Export the active Obsidian note to Word with native styles.",
   "type": "module",
@@ -8,10 +8,25 @@
     "build": "node esbuild.config.mjs",
     "check": "tsc --noEmit",
     "test": "tsx --test tests/*.test.ts",
+    "test:media": "node scripts/test-media.mjs",
     "example": "tsx scripts/export-example.ts",
-    "package": "node scripts/package.mjs"
+    "package": "node scripts/package.mjs",
+    "check:release": "node scripts/check-release.mjs"
   },
-  "dependencies": {"docx": "9.6.1", "marked": "17.0.5", "image-size": "1.2.1", "jszip": "3.10.1"},
-  "devDependencies": {"@types/node": "22.15.30", "esbuild": "0.25.12", "obsidian": "1.8.7", "tsx": "4.20.6", "typescript": "5.9.3"},
+  "dependencies": {
+    "docx": "9.6.1",
+    "image-size": "1.2.1",
+    "jszip": "3.10.1",
+    "marked": "17.0.5",
+    "mermaid": "12.3.0"
+  },
+  "devDependencies": {
+    "@types/node": "22.15.30",
+    "electron": "45.4.1",
+    "esbuild": "0.25.12",
+    "obsidian": "1.8.7",
+    "tsx": "4.20.6",
+    "typescript": "5.9.3"
+  },
   "license": "MIT"
 }

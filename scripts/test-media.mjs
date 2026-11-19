@@ -1,0 +1,11 @@
+import {build} from 'esbuild';
+import {spawn} from 'node:child_process';
+import {createRequire} from 'node:module';
+import {mkdir} from 'node:fs/promises';
+const require=createRequire(import.meta.url);
+await mkdir('work',{recursive:true});
+await build({entryPoints:['tests/media-electron.ts'],bundle:true,minify:true,platform:'node',format:'cjs',target:'es2022',external:['electron','@electron/remote'],loader:{'.min.js':'text'},outfile:'work/media-electron.cjs'});
+const env={...process.env};delete env.ELECTRON_RUN_AS_NODE;
+const child=spawn(process.env.NOTEPORT_TEST_ELECTRON || require('electron'),['work/media-electron.cjs'],{stdio:'inherit',env,windowsHide:true});
+child.on('error',e=>{console.error(e);process.exitCode=1;});
+child.on('exit',code=>{process.exitCode=code??1;});

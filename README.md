@@ -29,6 +29,7 @@ Writing a plan in Obsidian is convenient. Sharing it with a colleague who works 
 - **Real heading styles.** Markdown H1–H6 map to Word Heading 1–6 and appear in the navigation pane.
 - **Real multilevel numbering.** Optionally number headings as `1`, `1.1`, `1.1.1`, linked to the heading styles. Numbers are not pasted into title text.
 - **Consistent body paragraphs.** Choose no first-line indent or a two-character indent. Change the body style in Word to update the document.
+- **Pictures and diagrams.** Embed local pictures, convert SVG/WebP to PNG, and render Mermaid diagrams as static PNG pictures in the document.
 - **Local export.** No account, cloud conversion, Pandoc installation, or installed Word is needed to generate a file.
 - **English and Simplified Chinese.** Follow Obsidian's language or choose your interface language explicitly.
 
@@ -55,6 +56,9 @@ The note's filename becomes the suggested output filename. No extra document tit
 | Ordered / unordered / nested lists | Word list numbering; ordered starts retained, up to 9 levels |
 | Markdown tables | Editable Word tables with repeating header rows |
 | Local PNG / JPEG / GIF / BMP | Embedded, proportionally reduced to fit the page |
+| Local SVG / WebP | Converted to PNG locally, then embedded |
+| Fenced `mermaid` blocks | Rendered as PNG, in source order |
+| Image size hints | `![[image.png\|300]]`, `![[image.png\|300x200]]`, `![Caption\|300](image.png)`; proportions preserved |
 | `![[image.png]]` and Markdown images | Local vault images resolved relative to the note |
 | HTTP(S) / email links | Clickable links |
 | `[[note\|alias]]` | Visible alias as plain text |
@@ -63,17 +67,17 @@ The note's filename becomes the suggested output filename. No extra document tit
 
 ### Explicit limits
 
-This first release exports **one current note on desktop**. It does not merge notes, import Word templates, copy your personal `Normal.dotm`, or reproduce Obsidian themes. It writes its own consistent styles under Word's standard style IDs.
+NotePort exports **one current note on desktop**. It does not merge notes, import Word templates, copy your personal `Normal.dotm`, or reproduce Obsidian themes. It writes its own consistent styles under Word's standard style IDs.
 
-Mermaid, formulas, embedded notes, footnotes, callouts, HTML, and plugin-generated views are not fully rendered. Where detected, source or visible text is retained with an export note. Callouts become ordinary quotes. Remote images, SVG, WebP, and missing images become text placeholders with an export note. Relative note links remain text. Image sizing aliases, custom HTML layouts, and very wide tables are not reproduced faithfully. Extremely deep lists are flattened to Word's nine-level limit. Formula detection is heuristic.
+Formulas, embedded notes, footnotes, callouts, HTML, and plugin-generated views are not fully rendered. Where detected, source or visible text is retained with an export note. Callouts become ordinary quotes. Remote and missing images become text placeholders with an export note. Relative note links remain text. Custom HTML layouts, and very wide tables are not reproduced faithfully. Extremely deep lists are flattened to Word's nine-level limit. Formula detection is heuristic.
 
-Image-only paragraphs use the surrounding paragraph style. GIFs are embedded as GIF data; animation is not promised. Existing heading numbers are preserved; enabling automatic numbering can create duplicate prefixes and triggers a warning for common numeric patterns. Avoid skipped heading levels when using automatic numbering.
+Image-only paragraphs use a separate, unindented image style. Images in table cells and lists are fitted to the available width. GIFs are embedded as GIF data; animation is not promised. Existing heading numbers are preserved; enabling automatic numbering can create duplicate prefixes and triggers a warning for common numeric patterns. Avoid skipped heading levels when using automatic numbering.
 
 ## Installation
 
 NotePort is distributed through **GitHub Releases**. It is not yet listed in the Obsidian community directory.
 
-1. Download `noteport-0.1.0.zip` from the [latest release](https://github.com/WNGjeanm/obsidian-noteport/releases/latest).
+1. Download `noteport-0.2.0.zip` from the [latest release](https://github.com/WNGjeanm/obsidian-noteport/releases/latest).
 2. Extract the `noteport` folder into `<your-vault>/.obsidian/plugins/`.
 3. Confirm that `main.js`, `manifest.json`, and `styles.css` are directly inside `.obsidian/plugins/noteport/`.
 4. Reload Obsidian and enable **笔呈 · NotePort** under **Settings → Community plugins**. Review Obsidian's trust prompt yourself if shown.
@@ -100,17 +104,20 @@ A4 portrait, 1-inch margins, 11 pt body text, Calibri for Latin text and SimSun 
 
 ## Sample and verification
 
+See the [image and Mermaid guide](docs/media-export.md) for supported syntax, error handling, and size limits. Mermaid rendering is fully local and independent of your Obsidian theme.
+
 The [sample note](examples/示例笔记.md) describes a fictional community reading-space improvement plan. It includes Chinese and English text, three heading levels, a table, nested lists, links, a quote, code, and a local image.
 
 - [Plain headings](examples/sample.docx)
 - [Automatically numbered headings](examples/sample-numbered.docx)
+- [Mixed image/Mermaid Markdown example](examples/图文与Mermaid示例.md) and [Word result](examples/sample-media.docx)
 - [Test report and compatibility scope](docs/testing.md)
 
 Screenshot slots are reserved for the maintainer to add real captures. See the [screenshot guide](docs/screenshots.md) for filenames and replacement locations. The sample contains no personal notes.
 
 ## How it works
 
-NotePort captures the active note, parses Markdown into tokens, maps those tokens to editable DOCX elements, binds styles and numbering, embeds supported vault images, then opens the native save dialog. It does not launch Word for conversion.
+NotePort captures the active note, parses Markdown into tokens, maps those tokens to editable DOCX elements, binds styles and numbering, embeds vault images and rendered Mermaid PNGs, then opens the native save dialog. It does not launch Word for conversion.
 
 Read the [architecture](docs/architecture.md) for the module map, numbering implementation, data boundaries, and limitations. See [development](docs/development.md) for building and testing.
 
@@ -135,6 +142,6 @@ The export path makes no network requests. Markdown and images are read locally 
 
 Please include plugin/Obsidian/Word versions, the expected result, and a minimal example when [reporting a problem](https://github.com/WNGjeanm/obsidian-noteport/issues/new/choose). Remove confidential content before sharing a note.
 
-Built with [Obsidian API](https://github.com/obsidianmd/obsidian-api), [marked](https://github.com/markedjs/marked), [docx](https://github.com/dolanmiu/docx), [JSZip](https://github.com/Stuk/jszip), and [image-size](https://github.com/image-size/image-size). See [third-party notices](THIRD_PARTY_NOTICES.md). Documentation organization was informed by [DOCX Exporter](https://github.com/kanshurichard/obsidian-docx-exporter) and [Obsidian Pandoc](https://github.com/OliverBalfour/obsidian-pandoc); NotePort's implementation, copy, and sample were created for this project.
+Built with [Obsidian API](https://github.com/obsidianmd/obsidian-api), [marked](https://github.com/markedjs/marked), [docx](https://github.com/dolanmiu/docx), [JSZip](https://github.com/Stuk/jszip), [image-size](https://github.com/image-size/image-size), and [Mermaid](https://github.com/mermaid-js/mermaid). See [third-party notices](THIRD_PARTY_NOTICES.md). Documentation organization was informed by [DOCX Exporter](https://github.com/kanshurichard/obsidian-docx-exporter) and [Obsidian Pandoc](https://github.com/OliverBalfour/obsidian-pandoc); NotePort's implementation, copy, and sample were created for this project.
 
 Released under the [MIT License](LICENSE). Not affiliated with Obsidian or Microsoft.

@@ -1,6 +1,6 @@
 # Development / 开发说明
 
-Use Node.js 22 or later and pnpm 11. The lockfile pins the dependency graph. / 使用 Node.js 22 及以上、pnpm 11，依赖由锁文件固定。
+Use Node.js 22.12 or later and pnpm 11. The lockfile pins the dependency graph. / 使用 Node.js 22.12 及以上、pnpm 11，依赖由锁文件固定。
 
 ```sh
 pnpm install --frozen-lockfile
@@ -17,7 +17,7 @@ pnpm package
 
 ## Public fixture / 公开样例
 
-`examples/示例笔记.md` and `examples/assets/reading-plan.png` form a self-contained fixture. Run `pnpm example` to regenerate both DOCX examples. The standard example should have no export warnings. Add a separate edge-case note for unsupported content rather than hiding unsupported input from test coverage.
+`examples/示例笔记.md` and `examples/assets/reading-plan.png` form a self-contained fixture. Run `pnpm example` to regenerate both DOCX examples. `pnpm test:media` runs hidden Electron integration checks and generates `examples/sample-media.docx`. Electron is a development dependency, not an additional user installation requirement. Set `NOTEPORT_TEST_ELECTRON` to an existing Electron executable if its automatic download is unavailable. The standard examples should have no export warnings. Add a separate edge-case note for unsupported content rather than hiding unsupported input from test coverage.
 
 示例笔记和图片可独立复现导出。示例应无导出提示，不支持内容通过单独的边界样例验证。
 

@@ -13,9 +13,9 @@ const en = {
   warnings: 'Export notes', warningIntro: 'Some content needs attention. Your original note was not changed.',
   duplicate: 'Some headings already contain numbers. Automatic numbering may create duplicate prefixes.',
   body: 'Body', numbered: 'Heading numbering', on: 'On', off: 'Off', saved: 'Saved to',
-  limited: 'Local PNG/JPEG/GIF/BMP images only. Mermaid, formulas, embedded notes, and plugin-generated views are not rendered.',
+  limited: 'Local images are embedded; SVG/WebP and Mermaid diagrams become PNG pictures. Formulas, embedded notes, and plugin-generated views are not rendered.',
   close: 'Done', count: 'item(s)',
-  unsupported: 'Unsupported content kept as text', image: 'Image not embedded',
+  unsupported: 'Unsupported content kept as text', image: 'Image not embedded', mermaid:'Mermaid conversion failed; source retained',
 };
 const zh: typeof en = {
   export: '导出当前笔记为 Word', settings: '导出设置', intro: '原生 Word 样式，标题可编辑，文档可交付。',
@@ -29,8 +29,8 @@ const zh: typeof en = {
   warnings: '导出提示', warningIntro: '以下内容需要留意，原始笔记未被修改。',
   duplicate: '部分标题已包含编号，开启自动编号可能出现重复前缀。',
   body: '正文', numbered: '标题编号', on: '开启', off: '关闭', saved: '保存位置',
-  limited: '支持本地 PNG/JPEG/GIF/BMP 图片。Mermaid、公式、嵌入笔记及插件动态内容暂不渲染。',
-  close: '完成', count: '项', unsupported: '未支持内容已保留为文字', image: '图片未嵌入',
+  limited: '本地图片直接嵌入，SVG/WebP 和 Mermaid 图表转为 PNG 图片。公式、嵌入笔记及插件动态内容暂不渲染。',
+  close: '完成', count: '项', unsupported: '未支持内容已保留为文字', image: '图片未嵌入',mermaid:'Mermaid 转换失败，已保留源码',
 };
 export function languageOf(language: Language, locale = 'en'): 'zh' | 'en' {
   return language === 'auto' ? (locale.toLowerCase().startsWith('zh') ? 'zh' : 'en') : language;

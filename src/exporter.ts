@@ -1,12 +1,13 @@
-import { marked, type Token, type Tokens } from 'marked';
+import { marked, type Token } from 'marked';
 import { AlignmentType, Document, ExternalHyperlink, HeadingLevel, ImageRun, LevelFormat, LevelSuffix, Packer, Paragraph, ShadingType, Table, TableCell, TableRow, TextRun, WidthType, type IRunOptions, type IParagraphOptions } from 'docx';
 import sizeOf from 'image-size';
 import JSZip from 'jszip';
 import type { ExportSettings } from './settings';
 
-export interface ImageAsset { data: Uint8Array; }
+export interface ImageAsset { data: Uint8Array; displayWidth?: number; displayHeight?: number; }
 export type ImageResolver = (target: string) => Promise<ImageAsset | null>;
-export interface ExportWarning { code: 'image' | 'unsupported' | 'duplicate'; detail: string; }
+export type MermaidRenderer = (source: string) => Promise<ImageAsset>;
+export interface ExportWarning { code: 'image' | 'mermaid' | 'unsupported' | 'duplicate'; detail: string; }
 type Inline = TextRun | ExternalHyperlink | ImageRun;
 type Block = Paragraph | Table;
 const headingStyles = ['Heading1','Heading2','Heading3','Heading4','Heading5','Heading6'];
@@ -32,47 +33,60 @@ marked.use({extensions:[{name:'wiki',level:'inline',start(src) { return src.sear
   return m ? {type:'wiki',raw:m[0],embed:!!m[1],target:m[2]} : undefined;
 }}]});
 
-export async function exportMarkdown(markdown: string, title: string, settings: ExportSettings, resolveImage: ImageResolver = async () => null) {
+export async function exportMarkdown(markdown: string, title: string, settings: ExportSettings, resolveImage: ImageResolver = async () => null, renderMermaid?: MermaidRenderer) {
   const warnings: ExportWarning[] = [];
   const warn = (code: ExportWarning['code'], detail: string) => { if (!warnings.some(w => w.code === code && w.detail === detail)) warnings.push({code,detail}); };
   let listSequence = 0;
+  let diagramSequence = 0;
   const listConfigs: any[] = [];
   const source = markdown.replace(/^\uFEFF/, '').replace(/^---\r?\n[\s\S]*?\r?\n(?:---|\.\.\.)(?:\r?\n|$)/, '');
   // Formulas are retained as literal source; they are not silently dropped.
   if (/\$[^\n$]+\$|^\s*\$\$/m.test(source)) warn('unsupported', 'LaTeX / $…$');
   if (/\^[a-zA-Z0-9-]+\s*$/m.test(source)) warn('unsupported', 'Obsidian block IDs');
   if (/^\s*\[\^[^\]]+\]:|\[\^[^\]]+\]/m.test(source)) warn('unsupported', 'Footnotes / 脚注');
-  async function image(target: string, alt: string, style: IRunOptions = {}): Promise<Inline[]> {
+  function imageRun(asset:ImageAsset,alt:string,maxWidth:number,size?:{width:number;height?:number}) {
+    const dimensions = sizeOf(Buffer.from(asset.data));
+    const type = dimensions.type === 'jpg' ? 'jpg' : dimensions.type;
+    if (!['png','jpg','gif','bmp'].includes(type ?? '') || !dimensions.width || !dimensions.height) throw new Error('Unsupported or invalid image');
+    const width=asset.displayWidth ?? dimensions.width,height=asset.displayHeight ?? dimensions.height;
+    if(!Number.isFinite(width)||!Number.isFinite(height)||width<=0||height<=0)throw new Error('Invalid image dimensions');
+    const requested = size ? Math.min(size.width/width,size.height?size.height/height:Infinity) : 1;
+    const scale = Math.min(requested,maxWidth/width,780/height);
+    return new ImageRun({data:asset.data,type:type as 'png'|'jpg'|'gif'|'bmp',transformation:{width:Math.max(1,Math.round(width*scale)),height:Math.max(1,Math.round(height*scale))},altText:{name:alt,description:alt,title:alt}});
+  }
+  function imageLabel(value:string) {
+    const match=/^(.*?)\|([1-9]\d{0,4})(?:x([1-9]\d{0,4}))?$/.exec(value);
+    return match ? {alt:match[1],size:{width:Number(match[2]),...(match[3]?{height:Number(match[3])}:{})}} : {alt:value,size:undefined};
+  }
+  async function image(target: string, label: string, style: IRunOptions = {}, maxWidth=600): Promise<Inline[]> {
+    const {alt,size}=imageLabel(label);
     try {
       if (/^(?:[a-z][a-z0-9+.-]*:|\/\/)/i.test(target)) throw new Error('Non-vault image');
       const asset = await resolveImage(target);
       if (!asset) throw new Error('Missing image');
-      const dimensions = sizeOf(Buffer.from(asset.data));
-      const type = dimensions.type === 'jpg' ? 'jpg' : dimensions.type;
-      if (!['png','jpg','gif','bmp'].includes(type ?? '') || !dimensions.width || !dimensions.height) throw new Error('Unsupported image');
-      const scale = Math.min(1, 600 / dimensions.width, 780 / dimensions.height);
-      return [new ImageRun({data:asset.data, type:type as 'png'|'jpg'|'gif'|'bmp',transformation:{width:Math.round(dimensions.width*scale),height:Math.round(dimensions.height*scale)},altText:{name:alt || target,description:alt || target,title:alt || target}})];
+      return [imageRun(asset,alt || target,maxWidth,size)];
     } catch { warn('image', target); return [new TextRun({...style,text:`[${alt || target}]`})]; }
   }
-  async function inlines(tokens: Token[] = [], style: IRunOptions = {}): Promise<Inline[]> {
+  async function inlines(tokens: Token[] = [], style: IRunOptions = {}, maxWidth=600): Promise<Inline[]> {
     const result: Inline[] = [];
     for (const token of tokens) {
       const t = token as any;
       if (t.type === 'wiki') {
-        const [target, alias] = (t.target as string).split('|');
-        if (t.embed && /\.(?:png|jpe?g|gif|bmp|svg|webp)(?:#.*)?$/i.test(target)) result.push(...await image(target, alias || target, style));
+        const [target, ...aliases] = (t.target as string).split('|');
+        const alias=aliases.join('|');
+        if (t.embed && /\.(?:png|jpe?g|gif|bmp|svg|webp)(?:#.*)?$/i.test(target)) result.push(...await image(target, /^\d+(?:x\d+)?$/.test(alias)?`${target}|${alias}`:alias || target, style,maxWidth));
         else { if (t.embed) warn('unsupported', t.raw); result.push(new TextRun({...style,text:alias || target})); }
       } else if (['strong','em','del'].includes(t.type)) {
-        result.push(...await inlines(t.tokens,{...style,...(t.type==='strong'?{bold:true}:t.type==='em'?{italics:true}:{strike:true})}));
+        result.push(...await inlines(t.tokens,{...style,...(t.type==='strong'?{bold:true}:t.type==='em'?{italics:true}:{strike:true})},maxWidth));
       } else if (t.type === 'codespan') result.push(new TextRun({...style,text:decode(t.text),font:'Consolas',shading:{type:ShadingType.CLEAR,fill:'F0F2F5'}}));
       else if (t.type === 'br') result.push(new TextRun({...style,break:1}));
-      else if (t.type === 'image') result.push(...await image(t.href, t.text, style));
+      else if (t.type === 'image') result.push(...await image(t.href, t.text, style,maxWidth));
       else if (t.type === 'link') {
-        const children = await inlines(t.tokens,{...style,color:'2563A6',underline:{}});
+        const children = await inlines(t.tokens,{...style,color:'2563A6',underline:{}},maxWidth);
         if (/^(https?:|mailto:)/i.test(t.href)) result.push(new ExternalHyperlink({link:t.href,children}));
         else { result.push(...children); warn('unsupported', `Link kept as text / 链接保留为文字: ${t.href}`); }
       } else if (t.type === 'html') {warn('unsupported', 'HTML'); result.push(new TextRun({...style,text:t.raw}));}
-      else if (t.tokens) result.push(...await inlines(t.tokens,style));
+      else if (t.tokens) result.push(...await inlines(t.tokens,style,maxWidth));
       else result.push(new TextRun({...style,text:decode(t.text ?? t.raw ?? '').replace(/\r?\n/g,' ')}));
     }
     return result;
@@ -94,7 +108,12 @@ export async function exportMarkdown(markdown: string, title: string, settings: 
           if (settings.numbering && /^\s*(?:\d+(?:\.\d+)*[.、)]?\s+|[一二三四五六七八九十]+[、.])/.test(t.text)) warn('duplicate',t.text);
           result.push(new Paragraph({heading:headingLevels[t.depth-1],...(settings.numbering?{numbering:{reference:'headings',level:t.depth-1}}:{}),children:await inlines(t.tokens)})); break;
         }
-        case 'paragraph': case 'text': result.push(new Paragraph({...paragraphOptions(),children:await inlines(t.tokens ?? [{type:'text',raw:t.text,text:t.text}])})); break;
+        case 'paragraph': case 'text': {
+          const options=paragraphOptions();
+          const content=await inlines(t.tokens ?? [{type:'text',raw:t.text,text:t.text}],{},Math.max(48,600-(list?48*(list.level+1):context.quote?32:0)));
+          const imageOnly=content.length>0&&content.every(x=>x instanceof ImageRun);
+          result.push(new Paragraph({...options,...(imageOnly&&!list&&!context.quote?{style:'Image'}:{}),children:content}));break;
+        }
         case 'blockquote': {
           if (/^\[![^\]]+\]/.test(t.text)) warn('unsupported','Callout → quote / 提示块转为引用');
           result.push(...await blocks(t.tokens,{...context,quote:true})); break;
@@ -120,13 +139,22 @@ export async function exportMarkdown(markdown: string, title: string, settings: 
           const tableRows: TableRow[] = [];
           for (let i=0;i<rows.length;i++) {
             const cells: TableCell[] = [];
-            for(let j=0;j<rows[i].length;j++) cells.push(new TableCell({margins:{top:60,bottom:60,left:100,right:100},shading:i===0?{fill:'EDF1F6'}:undefined,children:[new Paragraph({style:'TableText',alignment:t.align[j]=== 'center'?AlignmentType.CENTER:t.align[j]==='right'?AlignmentType.RIGHT:AlignmentType.LEFT,children:await inlines(rows[i][j].tokens,{bold:i===0})})]}));
+            for(let j=0;j<rows[i].length;j++) cells.push(new TableCell({margins:{top:60,bottom:60,left:100,right:100},shading:i===0?{fill:'EDF1F6'}:undefined,children:[new Paragraph({style:'TableText',alignment:t.align[j]=== 'center'?AlignmentType.CENTER:t.align[j]==='right'?AlignmentType.RIGHT:AlignmentType.LEFT,children:await inlines(rows[i][j].tokens,{bold:i===0},Math.max(48,600/rows[i].length-14))})]}));
             tableRows.push(new TableRow({tableHeader:i===0,children:cells}));
           }
           result.push(new Table({width:{size:100,type:WidthType.PERCENTAGE},rows:tableRows})); break;
         }
         case 'code': {
-          if (/^(mermaid|dataview|dataviewjs|query|math)$/i.test(t.lang || '')) warn('unsupported',t.lang);
+          if(/^mermaid(?:\s|$)/i.test(t.lang || '')) {
+            const id=++diagramSequence;
+            try {
+              if(!renderMermaid)throw new Error('Mermaid renderer is unavailable');
+              const asset=await renderMermaid(t.text);
+              const diagram=imageRun(asset,`Mermaid ${id}`,Math.max(48,600-(list?48*(list.level+1):context.quote?32:0)));
+              result.push(new Paragraph({...paragraphOptions(),style:'Image',children:[diagram]}));break;
+            }catch(error){warn('mermaid',`Mermaid ${id}: ${error instanceof Error?error.message:String(error)}`);}
+          }
+          else if (/^(dataview|dataviewjs|query|math)$/i.test(t.lang || '')) warn('unsupported',t.lang);
           for(const line of t.text.split('\n')) result.push(new Paragraph({style:'CodeBlock',children:[new TextRun({text:line || ' '})]})); break;
         }
         case 'hr': result.push(new Paragraph({children:[new TextRun('──────────')],style:'TableText'})); break;
@@ -146,7 +174,8 @@ export async function exportMarkdown(markdown: string, title: string, settings: 
       {id:'Normal',name:'Normal',next:'Normal',quickFormat:true,paragraph:{indent:{firstLine:settings.indent?440:0},spacing:{after:120,line:360}}},
       {id:'Quote',name:'Quote',basedOn:'Normal',run:{color:'596579'},paragraph:{indent:{left:480,firstLine:0},spacing:{before:80,after:120}}},
       {id:'CodeBlock',name:'Code Block',basedOn:'Normal',run:{font:'Consolas',size:19},paragraph:{indent:{firstLine:0},spacing:{after:0,line:260},shading:{fill:'F3F5F8',type:ShadingType.CLEAR}}},
-      {id:'TableText',name:'Table Text',basedOn:'Normal',paragraph:{indent:{firstLine:0},spacing:{after:80,line:280}}}
+      {id:'TableText',name:'Table Text',basedOn:'Normal',paragraph:{indent:{firstLine:0},spacing:{after:80,line:280}}},
+      {id:'Image',name:'Image',basedOn:'Normal',paragraph:{indent:{firstLine:0},spacing:{before:100,after:160,line:240},keepLines:true}}
     ]},numbering:{config:[...(settings.numbering?[headingNumbering]:[]),...listConfigs]},
     sections:[{properties:{page:{size:{width:11906,height:16838},margin:{top:1440,bottom:1440,left:1440,right:1440}}},children:children.length?children:[new Paragraph('')]}]});
   // docx 9.6 has no public option for numbering-level pStyle or character indents.

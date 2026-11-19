@@ -11,7 +11,8 @@ for(const name of [...files,'LICENSE','THIRD_PARTY_NOTICES.md'])zip.file('notepo
 const archive=`noteport-${manifest.version}.zip`;
 await writeFile('dist/'+archive,await zip.generateAsync({type:'nodebuffer',compression:'DEFLATE'}));
 for(const name of [...files,'LICENSE','THIRD_PARTY_NOTICES.md'])await copyFile(name,'dist/'+name);
-const assets=[archive,...files,'LICENSE','THIRD_PARTY_NOTICES.md'];
+await copyFile('examples/sample-media.docx','dist/sample-media.docx');
+const assets=[archive,...files,'LICENSE','THIRD_PARTY_NOTICES.md','sample-media.docx'];
 const hashes=[];
 for(const name of assets)hashes.push(createHash('sha256').update(await readFile('dist/'+name)).digest('hex')+'  '+name);
 await writeFile('dist/SHA256SUMS.txt',hashes.join('\n')+'\n');

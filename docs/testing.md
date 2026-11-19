@@ -1,63 +1,59 @@
 # Validation report / 测试记录
 
-Release: **0.1.0** · Date / 日期: **2026-10-26**
+Release: **0.2.0** · Date / 日期: **2026-11-19**
 
-## Environment / 环境
+## Automated regression / 自动回归
 
-| Component | Verified environment / 实测环境 |
-| --- | --- |
-| OS | Windows x64 |
-| Obsidian | 1.14.4, independent disposable demo vault / 独立示例库 |
-| Microsoft Word | Desktop Word 16.0 on Windows / Windows 桌面版 |
-| Build runtime | Node.js 24.22.1, pnpm 11.25.0 |
-| Declared minimum API | Obsidian 1.8.7; this exact app version was not run / 未实际运行此最低版本 |
+**24 tests passed**. The original 16 tests cover native heading styles/numbering, body indentation, lists, tables, formatting, images, language parity, and filenames. Eight media tests add Mermaid insertion order, partial failure recovery, source fallback, size hints, table-cell sizing, high-resolution dimensions, relative/encoded paths, and conversion failure placeholders.
 
-## Automated checks / 自动检查
+**24 项测试通过**：原有 16 项覆盖标题编号、缩进、列表表格、基础格式、图片、双语和文件名；新增 8 项覆盖图表位置、部分失败恢复、源码降级、尺寸参数、单元格尺寸、高分辨率、相对及编码路径、转换失败占位。
 
-`pnpm check`, `pnpm test`, `pnpm build`, `pnpm example`, and `pnpm package` pass. / 类型检查、测试、构建、示例生成及打包通过。
+TypeScript checks and the production build pass. / 类型检查和生产构建通过。
 
-The **16 automated tests** cover / **16 项自动测试**覆盖：
+## Real renderer integration / 实际渲染引擎验证
 
-- Native H1–H6 styles, unique style IDs, and outline levels. / 六级标题样式唯一且大纲层级正确。
-- Bidirectional style/numbering association and paragraph-level numbering. / 标题样式与编号双向关联及段落编号。
-- Numbering disabled, preservation of source prefixes, and duplicate-prefix warnings. / 关闭编号、保留原前缀及重复提示。
-- Two-character body indent with explicit resets on headings and other styles. / 正文两字符缩进，其他样式显式重置。
-- Frontmatter exclusion, ordinary paragraph wraps, explicit line breaks, and inline formatting. / 属性排除、段落换行及基础格式。
-- Independent lists, ordered starts, nesting, editable tables, and repeating table headers. / 列表独立编号、起始值、嵌套及可编辑表格。
-- Wiki aliases, literal code, unsupported embeds and diagrams retained as text. / 双链显示名、原样代码及未支持内容保留。
-- Local image embedding, alternative text, missing/remote image placeholders, and inactive unsafe links. / 本地图片、替代文字、缺失及远程图片占位、非活动危险链接。
-- Task states, empty notes, language-key parity, settings validation, and safe filenames. / 任务状态、空笔记、双语资源、配置及文件名校验。
-
-## Real application checks / 真实软件验证
+Hidden **Electron 45.4.1**, Windows x64, bundled **Mermaid 12.3.0**:
 
 | Check / 检查 | Result / 结果 |
 | --- | --- |
-| Install and load plugin in the demo vault / 示例库安装加载 | Passed / 通过 |
-| Ribbon entry and registered export command / 左侧入口及导出命令 | Passed / 通过 |
-| Chinese and English export dialogs / 中英文导出弹窗 | Passed; public screenshots pending / 通过，公开截图待补充 |
-| Native save dialog → DOCX write → completion modal / 原生保存至完成状态 | Passed / 通过 |
-| Completion action opens the file in Word / 完成后打开 Word | Passed / 通过 |
-| Cancel export modal / 取消导出弹窗 | Passed / 通过 |
-| Language and export options survive plugin reload / 重载后配置保留 | Passed / 通过 |
-| Source sample remains unchanged / 示例源文件未改写 | Checked independently / 单独核验 |
-| Word navigation pane recognizes heading hierarchy / Word 导航识别层级 | Passed / 通过 |
-| Six-level numbering plus parent restart / 六级编号及父级重启 | Passed: `1 → 1.1 → … → 1.1.1.1.1.1`, `1.2`, `2`, `2.1` |
-| Add a new Heading 2 paragraph in Word / Word 中新增二级标题 | Automatically continued as `2.2` / 自动续为 `2.2` |
-| Change Normal style font size and first-line indent / 修改正文样式字号和缩进 | Propagates to body text / 正文同步更新 |
-| Plain and numbered sample rendering / 两份示例排版 | Two pages each, all four pages inspected / 各两页，四页逐页检查 |
+| Flowchart with Chinese labels / 中文流程图 | PNG, 1800 × 564 |
+| Sequence diagram / 时序图 | PNG, 1398 × 1011 |
+| State diagram / 状态图 | PNG, 504 × 972 |
+| HTML line breaks and mixed-language labels / 换行及中英标签 | PNG, 552 × 648 |
+| Mindmap / 思维导图 | PNG, 798 × 897 |
+| Invalid Mermaid followed by valid Mermaid / 错误后继续渲染 | Passed / 通过 |
+| SVG and WebP conversion / SVG 和 WebP 转换 | Passed / 通过 |
+| Mixed export contains four local pictures and two Mermaid pictures / 四张本地图片加两张图表 | Six editable-positioned static pictures / 六张静态图片 |
+| Renderer has no Node access; outbound fetch blocked / 无 Node 权限，网络调用被阻止 | Passed / 通过 |
+| Timeout destroys its hidden window / 超时销毁隐藏窗口 | Passed with deterministic stalled-window test / 阻塞窗口模拟测试通过 |
+| Normal completion and failed rendering leave no windows / 正常及失败后窗口释放 | Passed / 通过 |
 
-The DOCX renderer bundled with the authoring environment could not find LibreOffice. Visual QA therefore used Microsoft Word's own PDF export followed by Poppler rasterization, plus actual Word window screenshots. This is a Word validation, not a LibreOffice compatibility claim.
+Raster size reflects the Windows display scale; logical DOCX dimensions remain constrained to the page. No desktop screen capture or private-note fixture is part of this release.
 
-文档环境中的渲染器未找到 LibreOffice，因此使用 Microsoft Word 自身导出 PDF、Poppler 转为图片逐页检查，并拍摄实际 Word 窗口。此验证不代表 LibreOffice 兼容性已通过。
+栅格尺寸包含 Windows 显示缩放，DOCX 中的逻辑尺寸限制在页面内。本次不拍摄桌面截图，不使用私人笔记。
 
-## Limits of this verification / 验证边界
+## Microsoft Word / Word 验证
 
-macOS, Linux, mobile, WPS, Pages, Google Docs, and other Obsidian versions were not run. Native save-dialog cancellation/overwrite prompts, disk-full/read-only failures, very large notes, every third-party Markdown extension, and all missing-font scenarios have not received exhaustive live testing. Automated warning tests do not replace compatibility tests in those environments.
+Microsoft Word **16.0** opened all three generated examples and exported them to PDF. Word's own object model reported:
 
-未实测其他系统、移动端、其他文档编辑器及其他 Obsidian 版本。原生保存对话框的取消及覆盖提示、磁盘满或只读、大型笔记、所有第三方语法及全部缺字字体场景未做穷尽式实际测试。
+| Document | Pictures / 图片数 | Pages / 页数 |
+| --- | --- | --- |
+| sample.docx | 1 | 2 |
+| sample-numbered.docx | 1 | 2 |
+| sample-media.docx | 6 | 2 |
 
-## Screenshots / 截图
+All six pages were rasterized with Poppler and inspected for missing labels, clipping, overlaps, and picture order. Native Word heading numbering also remains present in the numbered examples.
 
-Public screenshots are intentionally left as placeholders for the maintainer to add. See [screenshot instructions](screenshots.md). Screenshots are not included as release evidence.
+三份文档共六页，使用 Word 导出 PDF、Poppler 栅格化后逐页检查中文、裁切、重叠和图片顺序；带编号示例仍使用 Word 原生标题编号。
 
-公开截图按维护者要求预留位置，后续自行补充，见[截图说明](screenshots.md)。本次发布不附截图作为测试证据。
+LibreOffice was unavailable in the bundled environment; this is not a LibreOffice compatibility pass. / 环境缺少 LibreOffice，此结果不代表其兼容性验证通过。
+
+## Verification boundaries / 验证边界
+
+The 0.2.0 Obsidian UI and its @electron/remote bridge were not exercised live. The renderer was tested with real Electron windows using an injected constructor, and DOCX output was opened in real Word. Native save-dialog behavior, lower Obsidian/Electron versions, macOS/Linux/mobile, WPS/Pages/Google Docs, very large files, external Mermaid assets, and all SVG/Markdown extensions are not exhaustively verified.
+
+本次未实际操作 0.2.0 的 Obsidian 界面及 @electron/remote 桥接；使用注入构造器创建真实 Electron 窗口验证渲染，并用真实 Word 打开输出。原生保存对话框、较旧 Obsidian/Electron、其他系统及编辑器、大型文件和全部扩展语法未穷尽验证。
+
+[0.1.0 historical report](testing-0.1.0.md) records the earlier live Obsidian/save-flow checks. Those earlier results are not presented as a new 0.2.0 UI pass.
+
+[0.1.0 历史报告](testing-0.1.0.md)保留原先的 Obsidian 和保存流程验证，不作为 0.2.0 新版界面已实测的结论。

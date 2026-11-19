@@ -19,11 +19,11 @@ for(const line of (await readFile('dist/SHA256SUMS.txt','utf8')).trim().split('\
 }
 async function checkDocs(folder) {
   for(const entry of await readdir(folder,{withFileTypes:true})) {
-    if(['node_modules','.git','dist'].includes(entry.name))continue;
+    if(['node_modules','.git','dist','work'].includes(entry.name))continue;
     const p=resolve(folder,entry.name);
     if(entry.isDirectory()){await checkDocs(p);continue;}
     if(!p.endsWith('.md'))continue;
-    const content=(await readFile(p,'utf8')).replace(/```[\s\S]*?```/g,'').replace(/<!--[\s\S]*?-->/g,'');
+    const content=(await readFile(p,'utf8')).replace(/```[\s\S]*?```/g,'').replace(/<!--[\s\S]*?-->/g,'').replace(/`[^`\n]*`/g,'');
     for(const match of content.matchAll(/\]\(([^)]+)\)/g)) {
       const href=match[1];if(/^(?:https?:|mailto:|#)/.test(href))continue;
       await stat(resolve(dirname(p),decodeURIComponent(href.split('#')[0])));

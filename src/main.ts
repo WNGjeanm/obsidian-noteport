@@ -3,7 +3,8 @@ import { DEFAULT_SETTINGS, settingsFrom, type ExportSettings } from './settings'
 import { strings } from './i18n';
 import { exportMarkdown, safeFilename, type ExportWarning } from './exporter';
 import { writeFile } from 'node:fs/promises';
-import { join } from 'node:path';
+import { ExportMediaRenderer } from './media-renderer';
+import { vaultImageResolver } from './vault-images';
 
 declare const require: (id: string) => any;
 function desktop() {
@@ -81,14 +82,11 @@ class ExportModal extends Modal {
     save.onclick=async()=>{
       if(this.busy)return;
       this.busy=true;save.disabled=true;cancel.disabled=true;save.textContent=t.busy;
+      const media=new ExportMediaRenderer();
       try {
         const text=this.editorContent ?? await this.app.vault.read(this.file);
-        const result=await exportMarkdown(text,this.file.basename,this.options,async target=>{
-          let link=target.split('#')[0];try{link=decodeURIComponent(link);}catch{}
-          const image=this.app.metadataCache.getFirstLinkpathDest(link,this.file.path);
-          if(!image || image.extension==='md')return null;
-          return {data:new Uint8Array(await this.app.vault.readBinary(image))};
-        });
+        const result=await exportMarkdown(text,this.file.basename,this.options,vaultImageResolver(this.app,this.file.path,media.rasterizeImage),media.renderMermaid);
+        media.dispose();
         const {dialog}=desktop();
         const chosen=await dialog.showSaveDialog({title:t.ready,defaultPath:safeFilename(this.file.basename),filters:[{name:'Word document',extensions:['docx']}],properties:['createDirectory','showOverwriteConfirmation']});
         if(chosen.canceled || !chosen.filePath)return;
@@ -98,7 +96,7 @@ class ExportModal extends Modal {
         this.plugin.settings.numbering=this.options.numbering;this.plugin.settings.indent=this.options.indent;await this.plugin.saveSettings();
         this.close();new ResultModal(this.plugin,destination,result.warnings).open();
       } catch(error) {new Notice(`${t.failed}: ${error instanceof Error?error.message:String(error)}`,10000);}
-      finally {this.busy=false;save.disabled=false;cancel.disabled=false;save.textContent=t.save;}
+      finally {media.dispose();this.busy=false;save.disabled=false;cancel.disabled=false;save.textContent=t.save;}
     };
   }
 }
@@ -111,7 +109,7 @@ class ResultModal extends Modal {
     if(this.warnings.length) {
       el.createEl('h3',{text:`${t.warnings} · ${this.warnings.length} ${t.count}`});el.createEl('p',{text:t.warningIntro,cls:'noteport-footnote'});
       const ul=el.createEl('ul',{cls:'noteport-warnings'});
-      for(const w of this.warnings) ul.createEl('li',{text:w.code==='duplicate'?`${t.duplicate} ${w.detail}`:`${w.code==='image'?t.image:t.unsupported}: ${w.detail}`});
+      for(const w of this.warnings) ul.createEl('li',{text:w.code==='duplicate'?`${t.duplicate} ${w.detail}`:`${w.code==='image'?t.image:w.code==='mermaid'?t.mermaid:t.unsupported}: ${w.detail}`});
     }
     const actions=el.createDiv({cls:'noteport-actions'});
     const folder=actions.createEl('button',{text:t.folder});folder.onclick=()=>desktop().shell.showItemInFolder(this.destination);
